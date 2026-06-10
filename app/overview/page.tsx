@@ -345,7 +345,7 @@ const OverviewPage: React.FC = () => {
                 <div className="text-white text-[20px] font-medium font-mono">
                   {isSystemOn ? liveSensors.temp.toFixed(1) : "--"}
                   <span className="text-gray-400 text-sm ml-1 font-sans">
-                    °C | °F
+                    °C
                   </span>
                 </div>
               </div>
