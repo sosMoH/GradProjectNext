@@ -10,8 +10,8 @@ interface AlarmRowProps {
   type: string;
   aqi: string;
   pm25: string;
-  co2: string;
-  no2: string;
+  co: string;
+  h2: string;
   image: string;
   isSolved: boolean;
   onToggle: (id: number) => void;
@@ -24,15 +24,15 @@ const AlarmRow: React.FC<AlarmRowProps> = ({
   type,
   aqi,
   pm25,
-  co2,
-  no2,
+  co,
+  h2,
   image,
   isSolved,
   onToggle,
 }) => {
   // Determine which value to show based on the alarm type
   const displayValue =
-    type === "PM2.5" ? pm25 : type === "CO₂" ? co2 : type === "NO₂" ? no2 : aqi;
+    type === "PM2.5" ? pm25 : type === "CO" ? co : type === "NO₂" ? h2 : aqi;
 
   return (
     <motion.div

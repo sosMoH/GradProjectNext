@@ -26,7 +26,7 @@ export const pm25SafeLevel = {
   ],
 };
 
-export const co2SafeLevel = {
+export const coSafeLevel = {
   markers: [
     { value: "800", left: "25%" },
     { value: "1500", left: "60%" },
@@ -40,7 +40,7 @@ export const co2SafeLevel = {
   ],
 };
 
-export const no2SafeLevel = {
+export const h2SafeLevel = {
   markers: [{ value: "200", left: "70%" }],
   ranges: [
     { label: "Good:", value: "0–21", color: "#00E400" },

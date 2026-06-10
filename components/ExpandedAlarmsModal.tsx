@@ -53,7 +53,7 @@ const ExpandedAlarmsModal = ({
               <div className="text-left">Time</div>
               <div>AQI</div>
               <div>PM2.5</div>
-              <div>CO₂</div>
+              <div>CO</div>
               <div>NO₂</div>
               <div>Status</div>
             </div>
@@ -94,10 +94,10 @@ const ExpandedAlarmsModal = ({
                       {alarm.pm25}
                     </div>
                     <div className="border-r border-gray-500/25">
-                      {alarm.co2}
+                      {alarm.co}
                     </div>
                     <div className="border-r border-gray-500/25">
-                      {alarm.no2}
+                      {alarm.h2}
                     </div>
                     <div className="flex justify-center">
                       <div
