@@ -24,7 +24,7 @@ import {
 } from "@/data/safeLevels";
 
 export interface AlarmItem {
-  id: number;
+  alarmId: string;
   locationName: string;
   time: string;
   rawTimestamp: number;
@@ -111,6 +111,27 @@ const OverviewPage: React.FC = () => {
 
   const [alarms, setAlarms] = useState<AlarmItem[]>([]);
 
+  // --- FETCH HISTORICAL ALARMS ON LOAD ---
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch("/api/getAlarms");
+        if (res.ok) {
+          const historicalAlarms = await res.json();
+          // Sort them so the newest alarms are at the top
+          historicalAlarms.sort(
+            (a: AlarmItem, b: AlarmItem) => b.rawTimestamp - a.rawTimestamp,
+          );
+          setAlarms(historicalAlarms);
+        }
+      } catch (err) {
+        console.error("Failed to load historical alarms:", err);
+      }
+    };
+
+    fetchHistory();
+  }, []);
+
   const activeHazardousSensors = useMemo(() => {
     const hazardous = [];
     if (liveSensors.aqi >= 301) hazardous.push("AQI");
@@ -141,18 +162,12 @@ const OverviewPage: React.FC = () => {
         );
 
         if (!alreadyHasActiveAlarm) {
-          const newId =
-            newAlarms.length > 0
-              ? Math.max(...newAlarms.map((a) => a.id)) + 1
-              : 1;
           const now = new Date();
           const timeString = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
-          // Snapshots the exact live data at the moment the alarm triggered
           newAlarms.unshift({
-            // unshift puts it at the TOP of the list
-            id: newId,
-            locationName: "Main Node", // Universal device name
+            alarmId: crypto.randomUUID(), // <-- NEW: Creates the unique ID DynamoDB needs
+            locationName: "Main Node",
             time: formatDummyDate(now, timeString),
             rawTimestamp: now.getTime(),
             type: sensorType,
@@ -189,39 +204,36 @@ const OverviewPage: React.FC = () => {
     setIsSystemOn(!isSystemOn);
   };
 
-  const toggleAlarm = async (id: number, rawTimestamp: number) => {
-    // 1. Optimistically update the UI so it feels instant
+  const toggleAlarm = async (alarmToSolve: AlarmItem) => {
+    // 1. Optimistically update UI
     setAlarms((prevAlarms) =>
       prevAlarms.map((alarm) =>
-        alarm.id === id ? { ...alarm, isSolved: true } : alarm,
+        alarm.alarmId === alarmToSolve.alarmId
+          ? { ...alarm, isSolved: true }
+          : alarm,
       ),
     );
 
-    // 2. Send the update through our Next.js Proxy!
+    // 2. Send the full object to proxy
     try {
-      console.log("Sending to local proxy...");
+      const updatedAlarm = { ...alarmToSolve, isSolved: true };
 
       const response = await fetch("/api/updateAlarm", {
-        // <-- CHANGED THIS LINE
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deviceId: "node01",
-          timestamp: rawTimestamp,
-          isSolved: true,
-        }),
+        body: JSON.stringify(updatedAlarm), // <-- Send the whole object!
       });
 
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(`Proxy returned status: ${response.status}`);
-      }
-
       console.log("DynamoDB successfully updated via Proxy!");
     } catch (err) {
       console.error("Failed to update database, reverting UI:", err);
       setAlarms((prevAlarms) =>
         prevAlarms.map((alarm) =>
-          alarm.id === id ? { ...alarm, isSolved: false } : alarm,
+          alarm.alarmId === alarmToSolve.alarmId
+            ? { ...alarm, isSolved: false }
+            : alarm,
         ),
       );
     }
@@ -525,7 +537,7 @@ const OverviewPage: React.FC = () => {
                     {unsolvedAlarms.length > 0 ? (
                       unsolvedAlarms.map((alarm) => (
                         <AlarmRow
-                          key={alarm.id}
+                          key={alarm.alarmId}
                           {...alarm}
                           onToggle={toggleAlarm}
                         />
@@ -564,7 +576,7 @@ const OverviewPage: React.FC = () => {
                     {solvedAlarms.length > 0 ? (
                       solvedAlarms.map((alarm) => (
                         <AlarmRow
-                          key={alarm.id}
+                          key={alarm.alarmId}
                           {...alarm}
                           onToggle={toggleAlarm}
                         />

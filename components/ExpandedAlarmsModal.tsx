@@ -101,7 +101,7 @@ const ExpandedAlarmsModal = ({
                     </div>
                     <div className="flex justify-center">
                       <div
-                        onClick={() => toggleAlarm(alarm.id)}
+                        onClick={() => toggleAlarm(alarm)}
                         className={`w-6 h-6 border rounded-sm flex-shrink-0 cursor-pointer transition-colors duration-200 ${alarm.isSolved ? "bg-[#3E9479] border-[#3E9479]" : "border-gray-500"}`}
                       />
                     </div>

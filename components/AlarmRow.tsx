@@ -2,36 +2,28 @@
 
 import { Check } from "lucide-react";
 import { motion } from "framer-motion";
+import { AlarmItem } from "@/app/overview/page"; // Import the interface
 
-interface AlarmRowProps {
-  id: number;
-  locationName: string;
-  time: string;
-  rawTimestamp: number; // 1. Added rawTimestamp here
-  type: string;
-  aqi: string;
-  pm25: string;
-  co: string;
-  h2: string;
-  image: string;
-  isSolved: boolean;
-  onToggle: (id: number, rawTimestamp: number) => void; // 2. Changed timeStr to rawTimestamp number
+// Extend the interface and update the onToggle type
+interface AlarmRowProps extends AlarmItem {
+  onToggle: (alarm: AlarmItem) => void;
 }
 
-const AlarmRow: React.FC<AlarmRowProps> = ({
-  id,
-  locationName,
-  time,
-  rawTimestamp, // 3. Destructured it here!
-  type,
-  aqi,
-  pm25,
-  co,
-  h2,
-  image,
-  isSolved,
-  onToggle,
-}) => {
+const AlarmRow: React.FC<AlarmRowProps> = (props) => {
+  // Destructure everything from props
+  const {
+    locationName,
+    time,
+    type,
+    aqi,
+    pm25,
+    co,
+    h2,
+    image,
+    isSolved,
+    onToggle,
+  } = props;
+
   const displayValue =
     type === "PM2.5" ? pm25 : type === "CO" ? co : type === "H₂" ? h2 : aqi;
 
@@ -66,7 +58,7 @@ const AlarmRow: React.FC<AlarmRowProps> = ({
       </div>
 
       <button
-        onClick={() => onToggle(id, rawTimestamp)} // 4. Passed rawTimestamp here instead of time!
+        onClick={() => onToggle(props)} // <-- Pass the whole object back
         className={`w-5 h-5 sm:w-6 sm:h-6 rounded flex items-center justify-center border transition-all flex-shrink-0 ${
           isSolved
             ? "bg-transparent border-[#3E9479]"
