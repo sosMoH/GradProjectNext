@@ -23,6 +23,20 @@ import {
   h2SafeLevel,
 } from "@/data/safeLevels";
 
+export interface AlarmItem {
+  id: number;
+  locationName: string;
+  time: string;
+  rawTimestamp: number;
+  type: string;
+  aqi: string;
+  pm25: string;
+  co: string;
+  h2: string;
+  image: string;
+  isSolved: boolean;
+}
+
 const imgRoom = "/assets/alarms_locations/bedroom.png";
 const imgGarden = "/assets/alarms_locations/garden.png";
 const imgRoof = "/assets/alarms_locations/roof.png";
@@ -95,71 +109,14 @@ const OverviewPage: React.FC = () => {
   const [acknowledgedAlerts, setAcknowledgedAlerts] = useState<string[]>([]);
   const liveSensors = useSensorData(isSystemOn);
 
-  const [alarms, setAlarms] = useState(() => {
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-
-    const twoDaysAgo = new Date(today);
-    twoDaysAgo.setDate(today.getDate() - 2);
-
-    return [
-      {
-        id: 1,
-        locationName: "Bedroom",
-        time: formatDummyDate(today, "18:33"),
-        type: "PM2.5",
-        aqi: "110",
-        pm25: "30µg/m³",
-        co: "1224ppm",
-        h2: "98ppb",
-        image: imgRoom,
-        isSolved: false,
-      },
-      {
-        id: 2,
-        locationName: "Garden",
-        time: formatDummyDate(yesterday, "14:15"),
-        type: "CO",
-        aqi: "110",
-        pm25: "30µg/m³",
-        co: "1224ppm",
-        h2: "98ppb",
-        image: imgGarden,
-        isSolved: false,
-      },
-      {
-        id: 3,
-        locationName: "Roof",
-        time: formatDummyDate(twoDaysAgo, "09:10"),
-        type: "PM2.5",
-        aqi: "110",
-        pm25: "30µg/m³",
-        co: "1224ppm",
-        h2: "98ppb",
-        image: imgRoof,
-        isSolved: true,
-      },
-      {
-        id: 4,
-        locationName: "Bedroom",
-        time: formatDummyDate(today, "22:00"),
-        type: "AQI",
-        aqi: "110",
-        pm25: "30µg/m³",
-        co: "1224ppm",
-        h2: "98ppb",
-        image: imgRoom,
-        isSolved: true,
-      },
-    ];
-  });
+  const [alarms, setAlarms] = useState<AlarmItem[]>([]);
 
   const activeHazardousSensors = useMemo(() => {
     const hazardous = [];
     if (liveSensors.aqi >= 301) hazardous.push("AQI");
     if (liveSensors.pm25 >= 251) hazardous.push("PM2.5");
     if (liveSensors.co >= 301) hazardous.push("CO");
-    if (liveSensors.h2 >= 501) hazardous.push("H₂");
+    if (liveSensors.h2 >= 500) hazardous.push("H₂");
     return hazardous;
   }, [liveSensors]);
 
@@ -168,6 +125,51 @@ const OverviewPage: React.FC = () => {
       prev.filter((sensor) => activeHazardousSensors.includes(sensor)),
     );
   }, [activeHazardousSensors]);
+
+  // --- AUTO-ADD ALARMS TO TABLE ---
+  useEffect(() => {
+    if (activeHazardousSensors.length === 0) return;
+
+    setAlarms((prevAlarms) => {
+      let newAlarms = [...prevAlarms];
+      let addedNew = false;
+
+      activeHazardousSensors.forEach((sensorType) => {
+        // Prevent spam: Check if an unsolved alarm for this specific sensor type already exists
+        const alreadyHasActiveAlarm = newAlarms.some(
+          (a) => a.type === sensorType && !a.isSolved,
+        );
+
+        if (!alreadyHasActiveAlarm) {
+          const newId =
+            newAlarms.length > 0
+              ? Math.max(...newAlarms.map((a) => a.id)) + 1
+              : 1;
+          const now = new Date();
+          const timeString = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+          // Snapshots the exact live data at the moment the alarm triggered
+          newAlarms.unshift({
+            // unshift puts it at the TOP of the list
+            id: newId,
+            locationName: "Main Node", // Universal device name
+            time: formatDummyDate(now, timeString),
+            rawTimestamp: now.getTime(),
+            type: sensorType,
+            aqi: liveSensors.aqi.toString(),
+            pm25: `${liveSensors.pm25}µg/m³`,
+            co: `${liveSensors.co}ppm`,
+            h2: `${liveSensors.h2}ppb`,
+            image: imgRoom,
+            isSolved: false,
+          });
+          addedNew = true;
+        }
+      });
+
+      return addedNew ? newAlarms : prevAlarms;
+    });
+  }, [activeHazardousSensors, liveSensors]);
 
   const currentPopupAlert = activeHazardousSensors.find(
     (sensor) => !acknowledgedAlerts.includes(sensor),
@@ -187,12 +189,42 @@ const OverviewPage: React.FC = () => {
     setIsSystemOn(!isSystemOn);
   };
 
-  const toggleAlarm = (id: number) => {
+  const toggleAlarm = async (id: number, rawTimestamp: number) => {
+    // 1. Optimistically update the UI so it feels instant
     setAlarms((prevAlarms) =>
       prevAlarms.map((alarm) =>
-        alarm.id === id ? { ...alarm, isSolved: !alarm.isSolved } : alarm,
+        alarm.id === id ? { ...alarm, isSolved: true } : alarm,
       ),
     );
+
+    // 2. Send the update through our Next.js Proxy!
+    try {
+      console.log("Sending to local proxy...");
+
+      const response = await fetch("/api/updateAlarm", {
+        // <-- CHANGED THIS LINE
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deviceId: "node01",
+          timestamp: rawTimestamp,
+          isSolved: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Proxy returned status: ${response.status}`);
+      }
+
+      console.log("DynamoDB successfully updated via Proxy!");
+    } catch (err) {
+      console.error("Failed to update database, reverting UI:", err);
+      setAlarms((prevAlarms) =>
+        prevAlarms.map((alarm) =>
+          alarm.id === id ? { ...alarm, isSolved: false } : alarm,
+        ),
+      );
+    }
   };
 
   const isPrevDisabled = currentDate.getTime() <= minDate.getTime();
@@ -336,33 +368,45 @@ const OverviewPage: React.FC = () => {
                 isSystemOn={isSystemOn}
               />
             </div>
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-8 mt-8 z-20 relative">
-              {/* Temperature Pill */}
-              <div className="bg-[#0B0F14]/60 border border-gray-500/25 rounded-2xl px-6 py-4 flex items-center justify-between w-full sm:w-[280px] shadow-lg">
-                <span className="text-gray-300 text-[18px] tracking-wide">
-                  Temperature
-                </span>
-                <div className="text-white text-[20px] font-medium font-mono">
-                  {isSystemOn ? liveSensors.temp.toFixed(1) : "--"}
-                  <span className="text-gray-400 text-sm ml-1 font-sans">
-                    °C
+            {/* --- PILLS SECTION --- */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mt-4 sm:mt-8 z-10 relative justify-items-center md:justify-items-start">
+              {/* Empty Spacer for Column 1 (Under AQI) */}
+              <div className="hidden lg:block w-full"></div>
+
+              {/* Temperature Pill (Under PM2.5) */}
+              <div className="w-full max-w-[250px]">
+                <div className="bg-[#0B0F14]/60 border border-gray-500/25 rounded-2xl px-5 py-4 flex items-center justify-between shadow-lg h-full">
+                  <span className="text-gray-300 text-[16px] tracking-wide">
+                    Temperature
                   </span>
+                  <div className="text-white text-[18px] font-medium font-mono">
+                    {isSystemOn ? liveSensors.temp.toFixed(1) : "--"}
+                    <span className="text-gray-400 text-sm ml-1 font-sans">
+                      °C
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Humidity Pill */}
-              <div className="bg-[#0B0F14]/60 border border-gray-500/25 rounded-2xl px-6 py-4 flex items-center justify-between w-full sm:w-[280px] shadow-lg">
-                <span className="text-gray-300 text-[18px] tracking-wide">
-                  Humidity
-                </span>
-                <div className="text-white text-[20px] font-medium font-mono">
-                  {isSystemOn ? liveSensors.humidity.toFixed(1) : "--"}
-                  <span className="text-gray-400 text-base ml-1 font-sans">
-                    %
+              {/* Humidity Pill (Under CO) */}
+              <div className="w-full max-w-[250px]">
+                <div className="bg-[#0B0F14]/60 border border-gray-500/25 rounded-2xl px-5 py-4 flex items-center justify-between shadow-lg h-full">
+                  <span className="text-gray-300 text-[16px] tracking-wide">
+                    Humidity
                   </span>
+                  <div className="text-white text-[18px] font-medium font-mono">
+                    {isSystemOn ? liveSensors.humidity.toFixed(1) : "--"}
+                    <span className="text-gray-400 text-sm ml-1 font-sans">
+                      %
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              {/* Empty Spacer for Column 4 (Under H2) */}
+              <div className="hidden lg:block w-full"></div>
             </div>
+            {/* --- END PILLS SECTION --- */}
           </section>
 
           <section className="relative z-10">
