@@ -14,6 +14,7 @@ import Header, { getFormattedDate } from "@/components/Header";
 import { useSensorData } from "@/hooks/useSensorData";
 import GaugeCard from "@/components/GaugeCard";
 import AlarmRow from "@/components/AlarmRow";
+import AlarmSkeleton from "@/components/AlarmSkeleton";
 import ExpandedAlarmsModal from "@/components/ExpandedAlarmsModal";
 
 import {
@@ -110,15 +111,16 @@ const OverviewPage: React.FC = () => {
   const liveSensors = useSensorData(isSystemOn);
 
   const [alarms, setAlarms] = useState<AlarmItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // --- FETCH HISTORICAL ALARMS ON LOAD ---
   useEffect(() => {
     const fetchHistory = async () => {
+      setIsLoading(true); // <-- Turn on loading
       try {
         const res = await fetch("/api/getAlarms");
         if (res.ok) {
           const historicalAlarms = await res.json();
-          // Sort them so the newest alarms are at the top
           historicalAlarms.sort(
             (a: AlarmItem, b: AlarmItem) => b.rawTimestamp - a.rawTimestamp,
           );
@@ -126,6 +128,8 @@ const OverviewPage: React.FC = () => {
         }
       } catch (err) {
         console.error("Failed to load historical alarms:", err);
+      } finally {
+        setIsLoading(false); // <-- Turn off loading when done
       }
     };
 
@@ -534,7 +538,13 @@ const OverviewPage: React.FC = () => {
                 </div>
                 <div className="flex flex-col">
                   <AnimatePresence mode="popLayout">
-                    {unsolvedAlarms.length > 0 ? (
+                    {isLoading ? (
+                      // Show 3 skeletons while loading
+                      <>
+                        <AlarmSkeleton />
+                        <AlarmSkeleton />
+                      </>
+                    ) : unsolvedAlarms.length > 0 ? (
                       unsolvedAlarms.map((alarm) => (
                         <AlarmRow
                           key={alarm.alarmId}
@@ -573,7 +583,13 @@ const OverviewPage: React.FC = () => {
                 </div>
                 <div className="flex flex-col">
                   <AnimatePresence mode="popLayout">
-                    {solvedAlarms.length > 0 ? (
+                    {isLoading ? (
+                      // Show 3 skeletons while loading
+                      <>
+                        <AlarmSkeleton />
+                        <AlarmSkeleton />
+                      </>
+                    ) : solvedAlarms.length > 0 ? (
                       solvedAlarms.map((alarm) => (
                         <AlarmRow
                           key={alarm.alarmId}
