@@ -138,10 +138,10 @@ const OverviewPage: React.FC = () => {
 
   const activeHazardousSensors = useMemo(() => {
     const hazardous = [];
-    if (liveSensors.aqi >= 301) hazardous.push("AQI");
-    if (liveSensors.pm25 >= 251) hazardous.push("PM2.5");
-    if (liveSensors.co >= 301) hazardous.push("CO");
-    if (liveSensors.h2 >= 500) hazardous.push("H₂");
+    if (liveSensors.aqi >= 50) hazardous.push("AQI");
+    if (liveSensors.pm25 >= 25) hazardous.push("PM2.5");
+    if (liveSensors.co >= 100) hazardous.push("CO");
+    if (liveSensors.h2 >= 50) hazardous.push("H₂");
     return hazardous;
   }, [liveSensors]);
 
@@ -355,7 +355,7 @@ const OverviewPage: React.FC = () => {
                 title="AQI"
                 value={liveSensors.aqi}
                 unit=""
-                percentage={isSystemOn ? liveSensors.aqi / 500 : 0}
+                percentage={isSystemOn ? liveSensors.aqi / 100 : 0}
                 safeLevelData={aqiSafeLevel}
                 isSystemOn={isSystemOn}
               />
@@ -363,7 +363,7 @@ const OverviewPage: React.FC = () => {
                 title="PM2.5"
                 value={liveSensors.pm25}
                 unit="µg/m³"
-                percentage={isSystemOn ? liveSensors.pm25 / 500 : 0}
+                percentage={isSystemOn ? liveSensors.pm25 / 100 : 0}
                 safeLevelData={pm25SafeLevel}
                 isSystemOn={isSystemOn}
               />
@@ -371,7 +371,7 @@ const OverviewPage: React.FC = () => {
                 title="CO"
                 value={liveSensors.co}
                 unit="ppm"
-                percentage={isSystemOn ? liveSensors.co / 500 : 0}
+                percentage={isSystemOn ? liveSensors.co / 150 : 0}
                 safeLevelData={coSafeLevel}
                 isSystemOn={isSystemOn}
               />
@@ -379,7 +379,7 @@ const OverviewPage: React.FC = () => {
                 title="H₂"
                 value={liveSensors.h2}
                 unit="ppb"
-                percentage={isSystemOn ? liveSensors.h2 / 500 : 0}
+                percentage={isSystemOn ? liveSensors.h2 / 100 : 0}
                 safeLevelData={h2SafeLevel}
                 isSystemOn={isSystemOn}
               />

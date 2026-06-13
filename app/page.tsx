@@ -8,7 +8,7 @@ const MainPage: React.FC = () => {
       
       <div
         className="absolute inset-0 bg-cover bg-center opacity-40 blur-[10px]"
-        style={{ backgroundImage: `url('/assets/air-quality-monitors.png')` }}
+        style={{ backgroundImage: `url('/assets/air-quality-monitors-1.png')` }}
       />
 
       <main className="relative z-10 flex-1 flex flex-col h-full overflow-y-auto md:overflow-hidden">
@@ -34,7 +34,7 @@ const MainPage: React.FC = () => {
 
           <div className="flex-1 order-2 md:order-1 flex justify-center items-end w-full mt-8 md:mt-0">
             <img
-              src="/assets/device.png"
+              src="/assets/device-1.png"
               alt="Air Quality Monitor Device"
               className="max-h-[50vh] md:max-h-[85vh] w-full object-contain object-bottom drop-shadow-2xl"
             />
