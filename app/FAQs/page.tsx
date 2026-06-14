@@ -56,13 +56,6 @@ const FaqItem = ({
   );
 };
 
-const bookDownload = () => {
-  window.open(
-    "https://drive.google.com/uc?export=download&id=187BdH_oiOTd43g24AUtFd5sc0CGUDo5v",
-    "_blank",
-  );
-};
-
 // --- MAIN FAQs Page Component ---
 const FaqsPage: React.FC = () => {
   // All the data extracted directly from your Figma design
@@ -155,7 +148,12 @@ const FaqsPage: React.FC = () => {
                   guides.
                 </p>
                 <button
-                  onClick={bookDownload}
+                  onClick={() =>
+                    window.open(
+                      "https://drive.google.com/uc?export=download&id=187BdH_oiOTd43g24AUtFd5sc0CGUDo5v",
+                      "_blank",
+                    )
+                  }
                   className="flex items-center gap-4 text-white border border-gray-500 rounded-full px-6 py-2.5 hover:border-[#A7F3D0]
                 hover:px-8 hover:text-[#A7F3D0] transition-colors cursor-pointer"
                 >
